@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthenticationController } from 'src/iam/authentication/authentication.controller';
 import { AuthenticationService } from 'src/iam/authentication/authentication.service';
 import { AccessTokenGuard } from 'src/iam/authentication/guards/access-token.guard';
+import { AuthenticationGuard } from 'src/iam/authentication/guards/authentication.guard';
 import jwtConfig from 'src/iam/config/jwt.config';
 import { BcryptService } from 'src/iam/hashing/bcrypt.service';
 import { HashingService } from 'src/iam/hashing/hashing.service';
@@ -25,8 +26,9 @@ import { User } from 'src/users/entities/user.entity';
     },
     {
       provide: APP_GUARD,
-      useClass: AccessTokenGuard,
+      useClass: AuthenticationGuard,
     },
+    AccessTokenGuard,
     AuthenticationService,
   ],
 })

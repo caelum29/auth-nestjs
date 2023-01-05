@@ -71,8 +71,6 @@ export class AuthenticationService {
       },
     );
 
-    console.log(accessToken);
-
     return {
       accessToken,
     };
