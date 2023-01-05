@@ -1,16 +1,21 @@
 import {
+  Body,
   ConflictException,
   Inject,
   Injectable,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SignUpDto } from 'src/iam/authentication/dto/sign-up.dto';
+import { Response } from 'express';
+import { RefreshTokenDto } from 'src/iam/authentication/dto/refresh-token.dto';
 import { SignInDto } from 'src/iam/authentication/dto/sign-in.dto';
+import { SignUpDto } from 'src/iam/authentication/dto/sign-up.dto';
 import jwtConfig from 'src/iam/config/jwt.config';
 import { HashingService } from 'src/iam/hashing/hashing.service';
+import { ActiveUserData } from 'src/iam/interfaces/active-user-data.interface';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
@@ -58,21 +63,56 @@ export class AuthenticationService {
       throw new UnauthorizedException('Passwords do not match');
     }
 
-    const accessToken = await this.jwtService.signAsync(
+    const { accessToken, refreshToken } = await this.generateTokens(user);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async generateTokens(user: User) {
+    try {
+      const [accessToken, refreshToken] = await Promise.all([
+        this.signToken<Partial<ActiveUserData>>(
+          user.id,
+          this.jwtConfiguration.accessTokenTtl,
+          { email: user.email },
+        ),
+        this.signToken(user.id, this.jwtConfiguration.refreshTokenTtl),
+      ]);
+
+      return { accessToken, refreshToken };
+    } catch (e) {
+      throw new UnauthorizedException();
+    }
+  }
+
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    const { sub } = await this.jwtService.verifyAsync<
+      Pick<ActiveUserData, 'sub'>
+    >(refreshTokenDto.refreshToken, {
+      secret: this.jwtConfiguration.secret,
+      audience: this.jwtConfiguration.audience,
+      issuer: this.jwtConfiguration.issuer,
+    });
+    const user = await this.userRepository.findOneByOrFail({ id: sub });
+
+    return this.generateTokens(user);
+  }
+
+  private async signToken<T>(userId: number, expiresIn: number, payload?: T) {
+    return await this.jwtService.signAsync(
       {
-        sub: user.id,
-        email: user.email,
+        sub: userId,
+        ...payload,
       },
       {
         audience: this.jwtConfiguration.audience,
         issuer: this.jwtConfiguration.issuer,
         secret: this.jwtConfiguration.secret,
-        expiresIn: this.jwtConfiguration.accessTokenTtl,
+        expiresIn,
       },
     );
-
-    return {
-      accessToken,
-    };
   }
 }

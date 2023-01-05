@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { AuthenticationService } from 'src/iam/authentication/authentication.service';
 import { Auth } from 'src/iam/authentication/decorators/auth.decorator';
+import { RefreshTokenDto } from 'src/iam/authentication/dto/refresh-token.dto';
 import { SignUpDto } from 'src/iam/authentication/dto/sign-up.dto';
 import { SignInDto } from 'src/iam/authentication/dto/sign-in.dto';
 import { Response } from 'express';
@@ -35,5 +36,11 @@ export class AuthenticationController {
     //   httpOnly: true,
     //   sameSite: true,
     // });
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh-token')
+  refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto);
   }
 }
