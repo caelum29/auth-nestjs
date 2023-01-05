@@ -21,16 +21,16 @@ export class AuthenticationController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('sing-invalid')
+  @Post('sign-in')
   signIn(
     @Body() signInDto: SignInDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const accessToken = this.authService.signIn(signInDto);
-    res.cookie('access_token', accessToken, {
-      secure: true,
-      httpOnly: true,
-      sameSite: true,
-    });
+    return this.authService.signIn(signInDto);
+    // res.cookie('access_token', accessToken, {
+    //   secure: true,
+    //   httpOnly: true,
+    //   sameSite: true,
+    // });
   }
 }
